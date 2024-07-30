@@ -2,6 +2,7 @@ use futures::prelude::*;
 use irc::client::prelude::*;
 use std::error::Error;
 use tokio::sync::mpsc;
+use tokio_util::sync::CancellationToken;
 
 use crate::event::Event;
 
@@ -31,15 +32,16 @@ impl From<Message> for IrcEvent {
     }
 }
 
-pub async fn irc_client(
+pub async fn create_client_stream(
     tx: mpsc::UnboundedSender<Event>,
     ouath_token: String,
+    cancel_token: CancellationToken,
 ) -> Result<(), Box<dyn Error>> {
     let config = Config {
         nickname: Some("blanlita".to_owned()),
         password: Some(ouath_token.to_owned()),
         server: Some("irc.chat.twitch.tv".to_owned()),
-        channels: vec!["#roflgator".into()],
+        channels: vec!["#zentreya".into()],
         ..Config::default()
     };
 
@@ -48,9 +50,18 @@ pub async fn irc_client(
 
     let mut stream = client.stream()?;
 
-    while let Some(message) = stream.next().await.transpose()? {
-        if let Err(e) = tx.send(Event::IrcEvent(message.into())) {
-            return Err(Box::new(e));
+    loop {
+        tokio::select! {
+            _ = cancel_token.cancelled() => {
+                    break;
+                }
+            message = stream.next() => {
+            if let Some(Ok(message)) = message {
+                if let Err(e) = tx.send(Event::IrcEvent(message.into())) {
+                    return Err(Box::new(e));
+            }
+        }
+            }
         }
     }
 

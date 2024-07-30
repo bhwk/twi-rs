@@ -1,47 +1,49 @@
 use dotenv::dotenv;
+use futures::{FutureExt, StreamExt};
+use handler::EventHandler;
 use std::{env, error::Error};
 use tokio::sync::mpsc;
+use tokio_util::sync::CancellationToken;
+
+use crossterm::event as CrosstermEvent;
 
 mod event;
+mod handler;
 mod twitch;
 
 use event::Event;
-use twitch::irc_client;
+use twitch::client_stream;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
 
-    let ouath_token = env::var("OAUTH")?;
+    let oauth_token = env::var("OAUTH")?;
 
-    let (tx, mut rx) = mpsc::unbounded_channel();
+    let mut event_handler = EventHandler::new(oauth_token, 250);
 
-    let irc_handle = tokio::spawn(async move {
-        if let Err(e) = irc_client::irc_client(tx, ouath_token).await {
-            eprintln!("Error: {}", e)
-        }
-    });
-
-    while let Some(event) = rx.recv().await {
+    while let Some(event) = event_handler.next().await {
         match event {
             Event::IrcEvent(irc_event) => match irc_event {
-                irc_client::IrcEvent::Join(channel) => {
+                client_stream::IrcEvent::Join(channel) => {
                     println!("JOIN [{}]", channel)
                 }
-                irc_client::IrcEvent::Privmsg(channel, message, nickname_exists) => {
+                client_stream::IrcEvent::Privmsg(channel, message, nickname_exists) => {
                     if let Some(nickname) = nickname_exists {
                         println!("[{}] {}: {}", channel, nickname, message)
                     } else {
                         println!("[{}] anon: {}", channel, message)
                     }
                 }
-                irc_client::IrcEvent::Ping(server) => println!("Got ping from: {server}"),
-                irc_client::IrcEvent::Other(_) => {}
+                client_stream::IrcEvent::Ping(server) => println!("Got ping from: {server}"),
+                client_stream::IrcEvent::Other(_) => {}
             },
+            Event::Quit => {
+                println!("Received Quit");
+                break;
+            }
         }
     }
-
-    irc_handle.await?;
 
     Ok(())
 }

@@ -1,1 +1,1 @@
-pub mod irc_client;
+pub mod client_stream;

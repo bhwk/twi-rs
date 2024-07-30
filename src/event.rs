@@ -1,5 +1,6 @@
-use crate::twitch::irc_client;
+use crate::twitch::client_stream;
 
 pub enum Event {
-    IrcEvent(irc_client::IrcEvent),
+    IrcEvent(client_stream::IrcEvent),
+    Quit,
 }
