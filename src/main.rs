@@ -1,49 +1,56 @@
 use dotenv::dotenv;
-use futures::{FutureExt, StreamExt};
-use handler::EventHandler;
-use std::{env, error::Error};
-use tokio::sync::mpsc;
+use event::{Event, EventHandler};
+use handler::{handle_irc_messages, handle_key_events};
+use ratatui::{backend::CrosstermBackend, Terminal};
+use std::{env, io};
 use tokio_util::sync::CancellationToken;
+use tui::Tui;
 
-use crossterm::event as CrosstermEvent;
-
+mod app;
 mod event;
 mod handler;
+mod tui;
 mod twitch;
+mod ui;
 
-use event::Event;
-use twitch::client_stream;
+use crate::app::{App, AppResult};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> AppResult<()> {
     dotenv().ok();
 
     let oauth_token = env::var("OAUTH")?;
+    let cancel_token = CancellationToken::new();
 
-    let mut event_handler = EventHandler::new(oauth_token, 250);
+    //clone cancel token to pass to events handler
+    let cloned_cancel_token = cancel_token.clone();
 
-    while let Some(event) = event_handler.next().await {
-        match event {
-            Event::IrcEvent(irc_event) => match irc_event {
-                client_stream::IrcEvent::Join(channel) => {
-                    println!("JOIN [{}]", channel)
-                }
-                client_stream::IrcEvent::Privmsg(channel, message, nickname_exists) => {
-                    if let Some(nickname) = nickname_exists {
-                        println!("[{}] {}: {}", channel, nickname, message)
-                    } else {
-                        println!("[{}] anon: {}", channel, message)
-                    }
-                }
-                client_stream::IrcEvent::Ping(server) => println!("Got ping from: {server}"),
-                client_stream::IrcEvent::Other(_) => {}
-            },
-            Event::Quit => {
-                println!("Received Quit");
-                break;
+    // create irc client and stream
+    let (client, client_stream) = twitch::client_stream::create_client_stream(oauth_token)
+        .await
+        .unwrap();
+    let mut app = App::new(client, cancel_token);
+
+    // init terminal ui
+    let backend = CrosstermBackend::new(io::stderr());
+    let terminal = Terminal::new(backend)?;
+    let events = EventHandler::new(client_stream, cloned_cancel_token);
+
+    let mut tui = Tui::new(terminal, events);
+
+    tui.init()?;
+
+    while app.running {
+        tui.draw(&mut app)?;
+
+        if let Some(event) = tui.events.next().await {
+            match event {
+                Event::IrcEvent(irc_event) => handle_irc_messages(irc_event, &mut app)?,
+                Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
             }
         }
     }
 
+    tui.exit()?;
     Ok(())
 }

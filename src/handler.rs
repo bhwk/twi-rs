@@ -1,68 +1,69 @@
-use futures::{FutureExt, StreamExt};
-use tokio::sync::mpsc;
-use tokio_util::sync::CancellationToken;
+use crate::{
+    app::{App, AppResult, InputMode},
+    twitch::client_stream::IrcEvent,
+};
+use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::event::Event;
-use crate::twitch::client_stream;
-
-pub struct EventHandler {
-    sender: mpsc::UnboundedSender<Event>,
-    receiver: mpsc::UnboundedReceiver<Event>,
-    handler: tokio::task::JoinHandle<()>,
-}
-
-impl EventHandler {
-    pub fn new(oauth_token: String, tick_rate: u64) -> Self {
-        let (sender, mut receiver) = mpsc::unbounded_channel();
-        let cancel_token = CancellationToken::new();
-        let _sender = sender.clone();
-
-        let irc_cancel_token = cancel_token.clone();
-        let irc_sender = sender.clone();
-
-        let irc_handle = tokio::spawn(async move {
-            if let Err(e) =
-                client_stream::create_client_stream(irc_sender, oauth_token, irc_cancel_token).await
-            {
-                eprintln!("Error: {}", e)
+pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+    match app.input_mode {
+        InputMode::Normal => match key_event.code {
+            // Exit application on `ESC` or `q`
+            // only in NORMAL mode
+            KeyCode::Esc | KeyCode::Char('q') => {
+                app.quit();
             }
-        });
-
-        let handler = tokio::spawn(async move {
-            let tick_rate = std::time::Duration::from_millis(250);
-            let mut reader = crossterm::event::EventStream::new();
-            let mut tick = tokio::time::interval(tick_rate);
-
-            loop {
-                let tick_delay = tick.tick();
-                let crossterm_event = reader.next().fuse();
-                tokio::select! {
-                    _ = tick_delay => {
-
-                    }
-
-                    Some(Ok(evt)) = crossterm_event => {
-                            if let crossterm::event::Event::Key(key) = evt {
-                                if key.code  == crossterm::event::KeyCode::Char('q') {
-                                    cancel_token.cancel();
-                                    _sender.send(Event::Quit).unwrap();
-                                    break;
-                                }
-                            }
-                    }
-
+            // Exit application on `Ctrl-C`
+            KeyCode::Char('c') | KeyCode::Char('C') => {
+                if key_event.modifiers == KeyModifiers::CONTROL {
+                    app.quit();
                 }
             }
-        });
 
-        Self {
-            sender,
-            receiver,
-            handler,
+            // enter edit mode
+            KeyCode::Char('e') => app.input_mode = InputMode::Editing,
+            _ => {}
+        },
+
+        InputMode::Editing => match key_event.code {
+            KeyCode::Char(to_insert) => app.enter_char(to_insert),
+            KeyCode::Enter => {
+                app.submit_input_message();
+            }
+            KeyCode::Backspace => {
+                app.delete_char();
+            }
+            KeyCode::Esc => {
+                app.input_mode = InputMode::Normal;
+            }
+            KeyCode::Right => {
+                app.move_cursor_right();
+            }
+            KeyCode::Left => {
+                app.move_cursor_left();
+            }
+            _ => {}
+        },
+    }
+    Ok(())
+}
+
+pub fn handle_irc_messages(irc_event: IrcEvent, app: &mut App) -> AppResult<()> {
+    match irc_event {
+        IrcEvent::Privmsg(channel, msg, nickname) => {
+            let mut chat_msg = String::new();
+            if let Some(nick) = nickname {
+                chat_msg = format!("[{}] {}: {}", channel, nick, msg);
+            } else {
+                chat_msg = format!("[{}] anon: {}", channel, msg);
+            }
+            app.push_irc_message(chat_msg);
         }
+        IrcEvent::Join(channel) => {
+            let join_msg = format!("Joined [{}]", channel);
+            app.push_irc_message(join_msg);
+        }
+        _ => {}
     }
 
-    pub async fn next(&mut self) -> Option<Event> {
-        self.receiver.recv().await
-    }
+    Ok(())
 }

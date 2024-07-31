@@ -1,16 +1,14 @@
-use futures::prelude::*;
-use irc::client::prelude::*;
-use std::error::Error;
-use tokio::sync::mpsc;
-use tokio_util::sync::CancellationToken;
+use irc::client::{prelude::*, ClientStream};
 
-use crate::event::Event;
+use crate::app::AppResult;
 
 #[derive(Debug)]
 pub enum IrcEvent {
     // channel name, message content, source nickname(if it exists)
     Privmsg(String, String, Option<String>),
+    // Channel name
     Join(String),
+    // Channel Name
     Ping(String),
     Other(Box<Message>),
 }
@@ -32,38 +30,19 @@ impl From<Message> for IrcEvent {
     }
 }
 
-pub async fn create_client_stream(
-    tx: mpsc::UnboundedSender<Event>,
-    ouath_token: String,
-    cancel_token: CancellationToken,
-) -> Result<(), Box<dyn Error>> {
+pub async fn create_client_stream(oauth_token: String) -> AppResult<(Client, ClientStream)> {
     let config = Config {
         nickname: Some("blanlita".to_owned()),
-        password: Some(ouath_token.to_owned()),
+        password: Some(oauth_token.to_owned()),
         server: Some("irc.chat.twitch.tv".to_owned()),
-        channels: vec!["#zentreya".into()],
+        channels: vec!["#roflgator".into()],
         ..Config::default()
     };
 
     let mut client = Client::from_config(config).await?;
     client.identify()?;
 
-    let mut stream = client.stream()?;
+    let stream = client.stream()?;
 
-    loop {
-        tokio::select! {
-            _ = cancel_token.cancelled() => {
-                    break;
-                }
-            message = stream.next() => {
-            if let Some(Ok(message)) = message {
-                if let Err(e) = tx.send(Event::IrcEvent(message.into())) {
-                    return Err(Box::new(e));
-            }
-        }
-            }
-        }
-    }
-
-    Ok(())
+    Ok((client, stream))
 }
