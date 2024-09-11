@@ -18,7 +18,10 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     app.quit();
                 }
             }
-
+            KeyCode::Tab => {
+                //TODO!
+                todo!()
+            }
             // enter edit mode
             KeyCode::Char('e') => app.input_mode = InputMode::Editing,
             _ => {}

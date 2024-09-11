@@ -1,6 +1,6 @@
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
-use irc::client::Client;
+use irc::client::{prelude, Client};
 use tokio_util::sync::CancellationToken;
 
 pub type AppResult<T> = std::result::Result<T, Box<dyn Error>>;
@@ -10,12 +10,33 @@ pub enum InputMode {
     Editing,
 }
 
+pub struct MessageInfo {
+    pub nickname: String,
+    pub channel: String,
+    pub content: String,
+}
+
+pub struct ChannelInfo {
+    pub name: String,
+    pub messages: Vec<MessageInfo>,
+}
+
+impl ChannelInfo {
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            messages: Vec::new(),
+        }
+    }
+}
+
 pub struct App {
     pub running: bool,
     pub input_mode: InputMode,
     pub messages: Vec<String>,
     pub input: String,
     pub character_index: usize,
+    pub channels: HashMap<String, ChannelInfo>,
     irc_client: Client,
     cancel_token: CancellationToken,
 }
@@ -28,6 +49,7 @@ impl App {
             input_mode: InputMode::Normal,
             messages: Vec::new(),
             character_index: 0,
+            channels: HashMap::new(),
             irc_client,
             cancel_token,
         }
@@ -92,12 +114,24 @@ impl App {
 
     pub fn submit_input_message(&mut self) {
         self.messages.push(self.input.clone());
+        self.irc_client
+            .send_privmsg("#blanlita", self.input.clone())
+            .unwrap();
         self.input.clear();
         self.reset_cursor();
     }
 
     pub fn push_irc_message(&mut self, chat_message: String) {
         self.messages.push(chat_message);
+    }
+
+    pub fn add_chat_message(&mut self, chat_message: MessageInfo) {
+        let channel_info = self
+            .channels
+            .entry(chat_message.channel.clone())
+            .or_insert(ChannelInfo::new(chat_message.channel.clone()));
+
+        channel_info.messages.push(chat_message);
     }
 
     pub fn quit(&mut self) {

@@ -35,7 +35,7 @@ pub async fn create_client_stream(oauth_token: String) -> AppResult<(Client, Cli
         nickname: Some("blanlita".to_owned()),
         password: Some(oauth_token.to_owned()),
         server: Some("irc.chat.twitch.tv".to_owned()),
-        channels: vec!["#roflgator".into()],
+        channels: vec!["#blanlita".into()],
         ..Config::default()
     };
 
