@@ -14,7 +14,6 @@ pub enum InputMode {
 #[derive(Default)]
 pub struct MessageInfo {
     pub nickname: String,
-    pub channel: String,
     pub content: String,
 }
 
@@ -35,10 +34,10 @@ impl ChannelInfo {
 pub struct App {
     pub running: bool,
     pub input_mode: InputMode,
-    pub messages: Vec<String>,
     pub input: String,
     pub character_index: usize,
     pub channels: Vec<ChannelInfo>,
+    pub current_channel: usize,
     irc_client: Client,
     cancel_token: CancellationToken,
 }
@@ -49,9 +48,9 @@ impl App {
             running: true,
             input: String::new(),
             input_mode: InputMode::Normal,
-            messages: Vec::new(),
             character_index: 0,
             channels: Vec::new(),
+            current_channel: 0,
             irc_client,
             cancel_token,
         }
@@ -104,26 +103,40 @@ impl App {
         self.character_index = 0;
     }
 
-    pub fn submit_input_message(&mut self) {
-        self.messages.push(self.input.clone());
-        self.irc_client
-            .send_privmsg("#blanlita", self.input.clone())
-            .unwrap();
-        self.input.clear();
-        self.reset_cursor();
+    pub fn send_chat_message(&mut self) {
+        if self.input.is_empty() {
+            return;
+        }
+
+        let current_channel = self.channels.get_mut(self.current_channel);
+        if let Some(channel) = current_channel {
+            self.irc_client
+                .send_privmsg(channel.name.clone(), self.input.clone())
+                .unwrap();
+            channel.messages.push(MessageInfo {
+                nickname: self.irc_client.current_nickname().into(),
+                content: self.input.clone(),
+            });
+            self.input.clear();
+            self.reset_cursor();
+        }
     }
 
-    pub fn push_irc_message(&mut self, chat_message: String) {
-        self.messages.push(chat_message);
-    }
-
-    pub fn add_chat_message(&mut self, chat_message: MessageInfo) {
+    pub fn add_chat_message(&mut self, target_channel: String, chat_message: MessageInfo) {
         let channel = self
             .channels
             .iter_mut()
-            .find(|channel| channel.name == chat_message.channel);
+            .find(|channel| channel.name == target_channel);
+        // if channel doesn't exist we just die
         if let Some(channel) = channel {
             channel.messages.push(chat_message)
+        }
+    }
+
+    pub fn on_join_channel(&mut self, channel: String) {
+        if self.channels.iter_mut().any(|c| c.name == channel) {
+        } else {
+            self.channels.push(ChannelInfo::new(channel));
         }
     }
 

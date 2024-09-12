@@ -30,7 +30,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         InputMode::Editing => match key_event.code {
             KeyCode::Char(to_insert) => app.enter_char(to_insert),
             KeyCode::Enter => {
-                app.submit_input_message();
+                app.send_chat_message();
             }
             KeyCode::Backspace => {
                 app.delete_char();
@@ -53,25 +53,18 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
 pub fn handle_irc_messages(irc_event: IrcEvent, app: &mut App) -> AppResult<()> {
     match irc_event {
         IrcEvent::Privmsg(channel, msg, nickname) => {
-            let chat_msg: String;
             let mut chat_message = MessageInfo::default();
             if let Some(nick) = nickname {
-                chat_msg = format!("[{}] {}: {}", channel, nick, msg);
-                chat_message.channel = channel;
                 chat_message.content = msg;
                 chat_message.nickname = nick;
             } else {
-                chat_msg = format!("[{}] anon: {}", channel, msg);
-                chat_message.channel = channel;
                 chat_message.content = msg;
                 chat_message.nickname = "UNKNOWN".to_string();
             }
-            app.push_irc_message(chat_msg);
-            app.add_chat_message(chat_message);
+            app.add_chat_message(channel, chat_message);
         }
         IrcEvent::Join(channel) => {
-            let join_msg = format!("Joined [{}]", channel);
-            app.push_irc_message(join_msg);
+            app.on_join_channel(channel);
         }
         _ => {}
     }

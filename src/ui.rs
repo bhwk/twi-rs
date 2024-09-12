@@ -1,41 +1,30 @@
-use crate::app::{App, InputMode};
+use crate::app::{App, InputMode, MessageInfo};
 use ratatui::{
     layout::{Constraint, Layout},
-    style::{Color, Modifier, Style, Stylize},
+    style::{palette::tailwind, Color, Modifier, Style},
     terminal::Frame,
     text::{Line, Span, Text},
-    widgets::{Block, List, ListItem, Paragraph},
+    widgets::{Block, List, ListItem, Paragraph, Tabs},
 };
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, frame: &mut Frame) {
     let vertical = Layout::vertical([
         Constraint::Length(1),
-        Constraint::Length(3),
         Constraint::Min(1),
+        Constraint::Length(1),
+        Constraint::Length(3),
     ]);
-    let [help_area, input_area, messages_area] = vertical.areas(frame.size());
+    let [tabs_area, messages_area, help_area, input_area] = vertical.areas(frame.size());
 
     let (msg, style) = match app.input_mode {
         InputMode::Normal => (
-            vec![
-                "Press ".into(),
-                "q".bold(),
-                " to exit, ".into(),
-                "e".bold(),
-                " to start editing.".bold(),
-            ],
-            Style::default().add_modifier(Modifier::RAPID_BLINK),
+            vec!["Press (q) to exit, (e) to edit".into()],
+            Style::default(),
         ),
         InputMode::Editing => (
-            vec![
-                "Press ".into(),
-                "Esc".bold(),
-                " to stop editing, ".into(),
-                "Enter".bold(),
-                " to record the message".into(),
-            ],
-            Style::default(),
+            vec!["Press (q) to exit, (e) to edit".into()],
+            Style::default().add_modifier(Modifier::DIM),
         ),
     };
     let text = Text::from(Line::from(msg)).patch_style(style);
@@ -68,15 +57,32 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         }
     }
 
-    let messages: Vec<ListItem> = app
-        .messages
-        .iter()
-        .enumerate()
-        .map(|(i, m)| {
-            let content = Line::from(Span::raw(format!("{i}: {m}")));
-            ListItem::new(content)
-        })
-        .collect();
-    let messages = List::new(messages).block(Block::bordered().title("Messages"));
-    frame.render_widget(messages, messages_area);
+    let current_channel = app.channels.get(app.current_channel);
+    if let Some(channel) = current_channel {
+        let messages: Vec<ListItem> = channel
+            .messages
+            .iter()
+            .map(|message_info: &MessageInfo| {
+                let MessageInfo { nickname, content } = message_info;
+                let message_content = Line::from(Span::raw(format!("{nickname}: {content}")));
+                ListItem::new(message_content)
+            })
+            .collect();
+        let messages = List::new(messages).block(Block::bordered().title("Messages"));
+        frame.render_widget(messages, messages_area);
+    } else {
+        let messages: Vec<ListItem> = vec![];
+        let messages = List::new(messages).block(Block::bordered().title("Messages"));
+        frame.render_widget(messages, messages_area);
+    }
+
+    // rendering tabs
+    let titles = app.channels.iter().map(|f| f.name.clone());
+    let selected_tab_index = app.current_channel;
+    let tabs = Tabs::new(titles)
+        .select(selected_tab_index)
+        .highlight_style(tailwind::BLUE.c700)
+        .padding("", "")
+        .divider(" ");
+    frame.render_widget(tabs, tabs_area);
 }

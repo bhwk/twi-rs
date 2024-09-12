@@ -26,9 +26,7 @@ async fn main() -> AppResult<()> {
     let cloned_cancel_token = cancel_token.clone();
 
     // create irc client and stream
-    let (client, client_stream) = twitch::client_stream::create_client_stream(oauth_token)
-        .await
-        .unwrap();
+    let (client, client_stream) = twitch::client_stream::create_client_stream(oauth_token).await?;
     let mut app = App::new(client, cancel_token);
 
     // init terminal ui
