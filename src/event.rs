@@ -28,14 +28,6 @@ impl EventHandler {
         let irc_cancel_token = cloned_cancel_token.clone();
         let irc_sender = sender.clone();
 
-        // let irc_handle = tokio::spawn(async move {
-        //     if let Err(e) =
-        //         client_stream::create_client_stream(irc_sender, oauth_token, irc_cancel_token).await
-        //     {
-        //         eprintln!("Error: {}", e)
-        //     }
-        // });
-
         // handle irc twitch events
         let irc_handle = tokio::spawn(async move {
             loop {

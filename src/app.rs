@@ -1,6 +1,7 @@
 use std::{collections::HashMap, error::Error};
 
-use irc::client::{prelude, Client};
+use crossterm::cursor::position;
+use irc::client::Client;
 use tokio_util::sync::CancellationToken;
 
 pub type AppResult<T> = std::result::Result<T, Box<dyn Error>>;
@@ -10,6 +11,7 @@ pub enum InputMode {
     Editing,
 }
 
+#[derive(Default)]
 pub struct MessageInfo {
     pub nickname: String,
     pub channel: String,
@@ -36,7 +38,7 @@ pub struct App {
     pub messages: Vec<String>,
     pub input: String,
     pub character_index: usize,
-    pub channels: HashMap<String, ChannelInfo>,
+    pub channels: Vec<ChannelInfo>,
     irc_client: Client,
     cancel_token: CancellationToken,
 }
@@ -49,7 +51,7 @@ impl App {
             input_mode: InputMode::Normal,
             messages: Vec::new(),
             character_index: 0,
-            channels: HashMap::new(),
+            channels: Vec::new(),
             irc_client,
             cancel_token,
         }
@@ -70,10 +72,6 @@ impl App {
         self.move_cursor_right();
     }
 
-    /// Returns the byte index based on the character position.
-    ///
-    /// Since each character in a string can be contain multiple bytes, it's necessary to calculate
-    /// the byte index based on the index of the character.
     fn byte_index(&self) -> usize {
         self.input
             .char_indices()
@@ -85,16 +83,10 @@ impl App {
     pub fn delete_char(&mut self) {
         let is_not_cursor_leftmost = self.character_index != 0;
         if is_not_cursor_leftmost {
-            // Method "remove" is not used on the saved text for deleting the selected char.
-            // Reason: Using remove on String works on bytes instead of the chars.
-            // Using remove would require special care because of char boundaries.
-
             let current_index = self.character_index;
             let from_left_to_current_index = current_index - 1;
 
-            // Getting all characters before the selected character.
             let before_char_to_delete = self.input.chars().take(from_left_to_current_index);
-            // Getting all characters after selected character.
             let after_char_to_delete = self.input.chars().skip(current_index);
 
             // Put all characters together except the selected one.
@@ -126,12 +118,13 @@ impl App {
     }
 
     pub fn add_chat_message(&mut self, chat_message: MessageInfo) {
-        let channel_info = self
+        let channel = self
             .channels
-            .entry(chat_message.channel.clone())
-            .or_insert(ChannelInfo::new(chat_message.channel.clone()));
-
-        channel_info.messages.push(chat_message);
+            .iter_mut()
+            .find(|channel| channel.name == chat_message.channel);
+        if let Some(channel) = channel {
+            channel.messages.push(chat_message)
+        }
     }
 
     pub fn quit(&mut self) {
