@@ -12,6 +12,9 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             KeyCode::Char('q') => {
                 app.quit();
             }
+            KeyCode::Char('x') => {
+                app.leave_current_channel();
+            }
             // Exit application on `Ctrl-c`
             KeyCode::Char('c') => {
                 if key_event.modifiers == KeyModifiers::CONTROL {

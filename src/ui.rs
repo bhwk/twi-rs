@@ -4,7 +4,7 @@ use ratatui::{
     style::{palette::tailwind, Color, Modifier, Style},
     terminal::Frame,
     text::{Line, Span, Text},
-    widgets::{Block, List, ListItem, Paragraph, Tabs},
+    widgets::{Block, List, ListItem, Paragraph, Tabs, Wrap},
 };
 
 /// Renders the user interface widgets.
@@ -64,7 +64,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             .iter()
             .map(|message_info: &MessageInfo| {
                 let MessageInfo { nickname, content } = message_info;
-                let message_content = Line::from(Span::raw(format!("{nickname}: {content}")));
+                let message_content = Line::from(format!("{nickname}: {content}"));
                 ListItem::new(message_content)
             })
             .collect();

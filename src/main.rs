@@ -38,6 +38,7 @@ async fn main() -> AppResult<()> {
 
     tui.init()?;
 
+    app.join_channel(vec!["#blanlita".into(), "#Nuts".into(), "#Buni".into()]);
     while app.running {
         tui.draw(&mut app)?;
 

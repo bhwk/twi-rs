@@ -1,10 +1,8 @@
-use std::{error::Error, thread::current};
-
 use irc::client::Client;
+use std::error::Error;
 use tokio_util::sync::CancellationToken;
 
 pub type AppResult<T> = std::result::Result<T, Box<dyn Error>>;
-
 pub enum InputMode {
     Normal,
     Editing,
@@ -133,6 +131,12 @@ impl App {
         }
     }
 
+    pub fn join_channel(&mut self, chanlist: Vec<String>) {
+        for channel in chanlist {
+            self.irc_client.send_join(channel).unwrap();
+        }
+    }
+
     pub fn on_join_channel(&mut self, channel: String) {
         if self.channels.iter_mut().any(|c| c.name == channel) {
         } else {
@@ -141,28 +145,21 @@ impl App {
     }
 
     pub fn next_channel(&mut self) {
-        if self.current_channel >= self.channels.len() - 1 {
+        if self.channels.is_empty() {
+            return;
+        }
+        if self.current_channel >= self.channels.len() - 1 && !self.channels.is_empty() {
             self.current_channel = 0;
         } else {
             self.current_channel += 1;
         }
     }
 
-    pub fn previous_channel(&mut self) {
-        self.current_channel = self.current_channel.saturating_sub(1);
-    }
-
-    pub fn on_leave_channel(&mut self, target: String) {
-        if let Some(index_to_remove) = self
-            .channels
-            .iter()
-            .position(|channel| channel.name == target)
-        {
-            if self.current_channel >= index_to_remove {
-                self.current_channel = self.current_channel.saturating_sub(1);
-            }
-
-            self.channels.remove(index_to_remove);
+    pub fn leave_current_channel(&mut self) {
+        if let Some(channel) = self.channels.get(self.current_channel) {
+            self.irc_client.send_part(channel.name.clone()).unwrap();
+            self.channels.remove(self.current_channel);
+            self.current_channel = self.current_channel.saturating_sub(1);
         }
     }
 

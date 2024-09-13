@@ -8,6 +8,7 @@ pub enum IrcEvent {
     Privmsg(String, String, Option<String>),
     // Channel name
     Join(String),
+    Leave(String),
     // Channel Name
     Ping(String),
     Other(Box<Message>),
@@ -24,6 +25,7 @@ impl From<Message> for IrcEvent {
                 }
             }
             Command::JOIN(channel, _, _) => IrcEvent::Join(channel),
+            Command::PART(channel, _) => IrcEvent::Leave(channel),
             Command::PING(server, _) => IrcEvent::Ping(server),
             _ => IrcEvent::Other(Box::new(message)),
         }
@@ -31,13 +33,7 @@ impl From<Message> for IrcEvent {
 }
 
 pub async fn create_client_stream(oauth_token: String) -> AppResult<(Client, ClientStream)> {
-    let config = Config {
-        nickname: Some("blanlita".to_owned()),
-        password: Some(oauth_token.to_owned()),
-        server: Some("irc.chat.twitch.tv".to_owned()),
-        channels: vec!["#blanlita".into(), "#Nuts".into()],
-        ..Config::default()
-    };
+    let config = Config::load("config.toml").unwrap();
 
     let mut client = Client::from_config(config).await?;
     client.identify()?;

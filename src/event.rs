@@ -22,14 +22,14 @@ pub struct EventHandler {
 // key input reading from crossterm for key handling
 impl EventHandler {
     pub fn new(mut stream: ClientStream, cloned_cancel_token: CancellationToken) -> Self {
-        let (sender, mut receiver) = mpsc::unbounded_channel();
+        let (sender, receiver) = mpsc::unbounded_channel();
         let _sender = sender.clone();
 
         let irc_cancel_token = cloned_cancel_token.clone();
         let irc_sender = sender.clone();
 
         // handle irc twitch events
-        let irc_handle = tokio::spawn(async move {
+        let _irc_handle = tokio::spawn(async move {
             loop {
                 tokio::select! {
                     _ = irc_cancel_token.cancelled() => {
