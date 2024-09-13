@@ -1,6 +1,5 @@
-use std::{collections::HashMap, error::Error};
+use std::{error::Error, thread::current};
 
-use crossterm::cursor::position;
 use irc::client::Client;
 use tokio_util::sync::CancellationToken;
 
@@ -11,12 +10,13 @@ pub enum InputMode {
     Editing,
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq, Eq)]
 pub struct MessageInfo {
     pub nickname: String,
     pub content: String,
 }
 
+#[derive(PartialEq, Eq)]
 pub struct ChannelInfo {
     pub name: String,
     pub messages: Vec<MessageInfo>,
@@ -137,6 +137,32 @@ impl App {
         if self.channels.iter_mut().any(|c| c.name == channel) {
         } else {
             self.channels.push(ChannelInfo::new(channel));
+        }
+    }
+
+    pub fn next_channel(&mut self) {
+        if self.current_channel >= self.channels.len() - 1 {
+            self.current_channel = 0;
+        } else {
+            self.current_channel += 1;
+        }
+    }
+
+    pub fn previous_channel(&mut self) {
+        self.current_channel = self.current_channel.saturating_sub(1);
+    }
+
+    pub fn on_leave_channel(&mut self, target: String) {
+        if let Some(index_to_remove) = self
+            .channels
+            .iter()
+            .position(|channel| channel.name == target)
+        {
+            if self.current_channel >= index_to_remove {
+                self.current_channel = self.current_channel.saturating_sub(1);
+            }
+
+            self.channels.remove(index_to_remove);
         }
     }
 

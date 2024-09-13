@@ -23,7 +23,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             Style::default(),
         ),
         InputMode::Editing => (
-            vec!["Press (q) to exit, (e) to edit".into()],
+            vec!["Press ESC to return to normal mode".into()],
             Style::default().add_modifier(Modifier::DIM),
         ),
     };

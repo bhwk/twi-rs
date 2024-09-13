@@ -7,21 +7,18 @@ use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     match app.input_mode {
         InputMode::Normal => match key_event.code {
-            // Exit application on `ESC` or `q`
+            // Exit application on or `q`
             // only in NORMAL mode
-            KeyCode::Esc | KeyCode::Char('q') => {
+            KeyCode::Char('q') => {
                 app.quit();
             }
-            // Exit application on `Ctrl-C`
-            KeyCode::Char('c') | KeyCode::Char('C') => {
+            // Exit application on `Ctrl-c`
+            KeyCode::Char('c') => {
                 if key_event.modifiers == KeyModifiers::CONTROL {
                     app.quit();
                 }
             }
-            KeyCode::Tab => {
-                //TODO!
-                todo!()
-            }
+            KeyCode::Tab => app.next_channel(),
             // enter edit mode
             KeyCode::Char('e') => app.input_mode = InputMode::Editing,
             _ => {}
