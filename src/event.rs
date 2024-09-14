@@ -8,6 +8,7 @@ use tokio_util::sync::CancellationToken;
 pub enum Event {
     IrcEvent(client_stream::IrcEvent),
     Key(KeyEvent),
+    Resize,
 }
 
 #[derive(Debug)]
@@ -50,13 +51,15 @@ impl EventHandler {
             loop {
                 let crossterm_event = reader.next().fuse();
                 tokio::select! {
-                    _ = cloned_cancel_token.cancelled() => {
-                    break;
-                    }
+                _ = cloned_cancel_token.cancelled() => {
+                break;
+                }
 
-                    Some(Ok(evt)) = crossterm_event => {
-                    if let crossterm::event::Event::Key(key) = evt {
-                        _sender.send(Event::Key(key)).unwrap()
+                Some(Ok(evt)) = crossterm_event => {
+                    match evt {
+                        crossterm::event::Event::Key(key) => _sender.send(Event::Key(key)).unwrap(),
+                        crossterm::event::Event::Resize(_, _) => _sender.send(Event::Resize).unwrap(),
+                        _ => {}
                         }
                     }
                 }

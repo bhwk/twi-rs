@@ -73,4 +73,9 @@ impl<B: Backend> Tui<B> {
         self.terminal.show_cursor()?;
         Ok(())
     }
+
+    pub fn resize(&mut self) -> AppResult<()> {
+        self.terminal.autoresize()?;
+        Ok(())
+    }
 }

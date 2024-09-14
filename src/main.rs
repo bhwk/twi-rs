@@ -7,6 +7,7 @@ use tokio_util::sync::CancellationToken;
 use tui::Tui;
 
 mod app;
+mod components;
 mod event;
 mod handler;
 mod tui;
@@ -38,7 +39,12 @@ async fn main() -> AppResult<()> {
 
     tui.init()?;
 
-    app.join_channel(vec!["#blanlita".into(), "#Nuts".into(), "#Buni".into()]);
+    app.join_channel(vec![
+        "#blanlita".into(),
+        "#Nuts".into(),
+        "#Buni".into(),
+        "#LCK".into(),
+    ]);
     while app.running {
         tui.draw(&mut app)?;
 
@@ -46,6 +52,7 @@ async fn main() -> AppResult<()> {
             match event {
                 Event::IrcEvent(irc_event) => handle_irc_messages(irc_event, &mut app)?,
                 Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
+                Event::Resize => tui.resize()?,
             }
         }
     }
