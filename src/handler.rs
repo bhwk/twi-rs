@@ -21,6 +21,14 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     app.quit();
                 }
             }
+            KeyCode::Char('j') | KeyCode::Down => {
+                app.scroll_position = app.scroll_position.saturating_add(1);
+                app.scrollbar_state = app.scrollbar_state.position(app.scroll_position);
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                app.scroll_position = app.scroll_position.saturating_sub(1);
+                app.scrollbar_state = app.scrollbar_state.position(app.scroll_position);
+            }
             KeyCode::Tab => app.next_channel(),
             // enter edit mode
             KeyCode::Char('e') => app.input_mode = InputMode::Editing,
