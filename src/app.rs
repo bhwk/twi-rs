@@ -1,5 +1,5 @@
 use irc::client::Client;
-use ratatui::widgets::ScrollbarState;
+use ratatui::widgets::ListState;
 use std::error::Error;
 use tokio_util::sync::CancellationToken;
 
@@ -37,8 +37,7 @@ pub struct App {
     pub character_index: usize,
     pub channels: Vec<ChannelInfo>,
     pub current_channel: usize,
-    pub scrollbar_state: ScrollbarState,
-    pub scroll_position: usize,
+    pub state: ListState,
     irc_client: Client,
     cancel_token: CancellationToken,
 }
@@ -51,9 +50,8 @@ impl App {
             input_mode: InputMode::Normal,
             character_index: 0,
             channels: Vec::new(),
-            scrollbar_state: ScrollbarState::default(),
-            scroll_position: 0,
             current_channel: 0,
+            state: ListState::default(),
             irc_client,
             cancel_token,
         }
