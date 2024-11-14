@@ -25,6 +25,7 @@ pub fn render_messages(app: &mut App, area: Rect, frame: &mut Frame) {
                 let mut wrap = textwrap::wrap(s, area.width as usize);
                 wrap.iter_mut()
                     .map(|s| s.clone().into_owned())
+                    .rev()
                     .collect::<Vec<String>>()
             })
             .collect();
