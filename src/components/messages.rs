@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Margin, Rect},
     text::Line,
-    widgets::{Block, List, ListItem, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
+    widgets::{Block, List, ListDirection, ListItem, Paragraph, Scrollbar, ScrollbarOrientation},
     Frame,
 };
 
@@ -17,6 +17,7 @@ pub fn render_messages(app: &mut App, area: Rect, frame: &mut Frame) {
                 let MessageInfo { nickname, content } = message_info;
                 format!("{nickname}: {content}")
             })
+            .rev()
             .collect();
         let wrapped_text: Vec<String> = message_contents
             .iter()
@@ -32,22 +33,11 @@ pub fn render_messages(app: &mut App, area: Rect, frame: &mut Frame) {
             .map(|s| Line::from(s.to_string()))
             .collect();
 
-        let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight);
-        app.scrollbar_state = app.scrollbar_state.content_length(messages.len());
-
-        let message_block = Paragraph::new(messages.clone())
-            .scroll((app.scroll_position as u16, 0))
+        let messages = List::new(messages)
+            .direction(ListDirection::BottomToTop)
             .block(Block::bordered().title("messages"));
 
-        frame.render_widget(message_block, area);
-        frame.render_stateful_widget(
-            scrollbar,
-            area.inner(Margin {
-                vertical: 1,
-                horizontal: 0,
-            }),
-            &mut app.scrollbar_state,
-        );
+        frame.render_widget(messages, area);
     } else {
         let messages: Vec<ListItem> = vec![];
         let messages = List::new(messages).block(Block::bordered().title("messages"));
