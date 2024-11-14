@@ -1,15 +1,18 @@
 use dotenv::dotenv;
 use event::{Event, EventHandler};
-use handler::{handle_irc_messages, handle_key_events};
+
+use irc_handler::handle_irc_messages;
+use key_handler::handle_key_events;
 use ratatui::{backend::CrosstermBackend, Terminal};
-use std::{env, io};
+use std::io;
 use tokio_util::sync::CancellationToken;
 use tui::Tui;
 
 mod app;
 mod components;
 mod event;
-mod handler;
+mod irc_handler;
+mod key_handler;
 mod tui;
 mod twitch;
 mod ui;

@@ -1,7 +1,4 @@
-use crate::{
-    app::{App, AppResult, InputMode, MessageInfo},
-    twitch::client_stream::ClientEvent,
-};
+use crate::app::{App, AppResult, InputMode};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -22,12 +19,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 }
             }
             KeyCode::Char('j') | KeyCode::Down => {
-                app.scroll_position = app.scroll_position.saturating_add(1);
-                app.scrollbar_state = app.scrollbar_state.position(app.scroll_position);
+                let offset = app.state.offset();
+                *app.state.offset_mut() = offset.saturating_sub(1);
             }
             KeyCode::Char('k') | KeyCode::Up => {
-                app.scroll_position = app.scroll_position.saturating_sub(1);
-                app.scrollbar_state = app.scrollbar_state.position(app.scroll_position);
+                let offset = app.state.offset();
+                *app.state.offset_mut() = offset.saturating_add(1);
             }
             KeyCode::Tab => app.next_channel(),
             // enter edit mode
@@ -55,27 +52,5 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             _ => {}
         },
     }
-    Ok(())
-}
-
-pub fn handle_irc_messages(irc_event: ClientEvent, app: &mut App) -> AppResult<()> {
-    match irc_event {
-        ClientEvent::Privmsg(channel, msg, nickname) => {
-            let mut chat_message = MessageInfo::default();
-            if let Some(nick) = nickname {
-                chat_message.content = msg;
-                chat_message.nickname = nick;
-            } else {
-                chat_message.content = msg;
-                chat_message.nickname = "UNKNOWN".to_string();
-            }
-            app.add_chat_message(channel, chat_message);
-        }
-        ClientEvent::Join(channel) => {
-            app.on_join_channel(channel);
-        }
-        _ => {}
-    }
-
     Ok(())
 }
