@@ -38,12 +38,12 @@ pub struct App {
     pub channels: Vec<ChannelInfo>,
     pub current_channel: usize,
     pub state: ListState,
-    irc_client: Client,
+    client: Client,
     cancel_token: CancellationToken,
 }
 
 impl App {
-    pub fn new(irc_client: Client, cancel_token: CancellationToken) -> Self {
+    pub fn new(client: Client, cancel_token: CancellationToken) -> Self {
         Self {
             running: true,
             input: String::new(),
@@ -52,7 +52,7 @@ impl App {
             channels: Vec::new(),
             current_channel: 0,
             state: ListState::default(),
-            irc_client,
+            client,
             cancel_token,
         }
     }
@@ -111,11 +111,11 @@ impl App {
 
         let current_channel = self.channels.get_mut(self.current_channel);
         if let Some(channel) = current_channel {
-            self.irc_client
+            self.client
                 .send_privmsg(channel.name.clone(), self.input.clone())
                 .unwrap();
             channel.messages.push(MessageInfo {
-                nickname: self.irc_client.current_nickname().into(),
+                nickname: self.client.current_nickname().into(),
                 content: self.input.clone(),
             });
             self.input.clear();
@@ -136,7 +136,7 @@ impl App {
 
     pub fn join_channel(&mut self, chanlist: Vec<String>) {
         for channel in chanlist {
-            self.irc_client.send_join(channel).unwrap();
+            self.client.send_join(channel).unwrap();
         }
     }
 
@@ -160,7 +160,7 @@ impl App {
 
     pub fn leave_current_channel(&mut self) {
         if let Some(channel) = self.channels.get(self.current_channel) {
-            self.irc_client.send_part(channel.name.clone()).unwrap();
+            self.client.send_part(channel.name.clone()).unwrap();
             self.channels.remove(self.current_channel);
             self.current_channel = self.current_channel.saturating_sub(1);
         }

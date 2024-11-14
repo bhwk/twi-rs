@@ -3,6 +3,7 @@ use irc::client::{prelude::*, ClientStream};
 use crate::app::AppResult;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum ClientEvent {
     // channel name, message content, source nickname(if it exists)
     Privmsg(String, String, Option<String>),
