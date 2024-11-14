@@ -41,12 +41,14 @@ pub fn render_input_box(app: &App, area: Rect, frame: &mut Frame) {
             // Make the cursor visible and ask ratatui to put it at the specified coordinates after
             // rendering
             #[allow(clippy::cast_possible_truncation)]
-            frame.set_cursor(
+            frame.set_cursor_position(
                 // Draw the cursor at the current position in the input field.
                 // This position is can be controlled via the left and right arrow key
-                input_box.x + app.character_index as u16 + 1,
-                // Move one line down, from the border to the input line
-                input_box.y + 1,
+                (
+                    input_box.x + app.character_index as u16 + 1,
+                    // Move one line down, from the border to the input line
+                    input_box.y + 1,
+                ),
             );
         }
     }

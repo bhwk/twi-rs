@@ -3,7 +3,7 @@ use irc::client::{prelude::*, ClientStream};
 use crate::app::AppResult;
 
 #[derive(Debug)]
-pub enum IrcEvent {
+pub enum ClientEvent {
     // channel name, message content, source nickname(if it exists)
     Privmsg(String, String, Option<String>),
     // Channel name
@@ -14,20 +14,20 @@ pub enum IrcEvent {
     Other(Box<Message>),
 }
 
-impl From<Message> for IrcEvent {
+impl From<Message> for ClientEvent {
     fn from(message: Message) -> Self {
         match message.command {
             Command::PRIVMSG(ref channel, ref msg) => {
                 if let Some(nickname) = message.source_nickname() {
-                    IrcEvent::Privmsg(channel.clone(), msg.clone(), Some(nickname.to_string()))
+                    ClientEvent::Privmsg(channel.clone(), msg.clone(), Some(nickname.to_string()))
                 } else {
-                    IrcEvent::Privmsg(channel.clone(), msg.clone(), None)
+                    ClientEvent::Privmsg(channel.clone(), msg.clone(), None)
                 }
             }
-            Command::JOIN(channel, _, _) => IrcEvent::Join(channel),
-            Command::PART(channel, _) => IrcEvent::Leave(channel),
-            Command::PING(server, _) => IrcEvent::Ping(server),
-            _ => IrcEvent::Other(Box::new(message)),
+            Command::JOIN(channel, _, _) => ClientEvent::Join(channel),
+            Command::PART(channel, _) => ClientEvent::Leave(channel),
+            Command::PING(server, _) => ClientEvent::Ping(server),
+            _ => ClientEvent::Other(Box::new(message)),
         }
     }
 }

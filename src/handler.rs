@@ -1,6 +1,6 @@
 use crate::{
     app::{App, AppResult, InputMode, MessageInfo},
-    twitch::client_stream::IrcEvent,
+    twitch::client_stream::ClientEvent,
 };
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -58,9 +58,9 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-pub fn handle_irc_messages(irc_event: IrcEvent, app: &mut App) -> AppResult<()> {
+pub fn handle_irc_messages(irc_event: ClientEvent, app: &mut App) -> AppResult<()> {
     match irc_event {
-        IrcEvent::Privmsg(channel, msg, nickname) => {
+        ClientEvent::Privmsg(channel, msg, nickname) => {
             let mut chat_message = MessageInfo::default();
             if let Some(nick) = nickname {
                 chat_message.content = msg;
@@ -71,7 +71,7 @@ pub fn handle_irc_messages(irc_event: IrcEvent, app: &mut App) -> AppResult<()> 
             }
             app.add_chat_message(channel, chat_message);
         }
-        IrcEvent::Join(channel) => {
+        ClientEvent::Join(channel) => {
             app.on_join_channel(channel);
         }
         _ => {}

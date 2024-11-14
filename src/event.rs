@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 pub enum Event {
-    IrcEvent(client_stream::IrcEvent),
+    Client(client_stream::ClientEvent),
     Key(KeyEvent),
     Resize,
 }
@@ -38,7 +38,7 @@ impl EventHandler {
                     }
                     message = stream.next() => {
                         if let Some(Ok(message)) = message {
-                        irc_sender.send(Event::IrcEvent(message.into())).unwrap();
+                        irc_sender.send(Event::Client(message.into())).unwrap();
                     };
                     }
                 }

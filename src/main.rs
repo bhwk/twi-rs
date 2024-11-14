@@ -45,7 +45,7 @@ async fn main() -> AppResult<()> {
 
         if let Some(event) = tui.events.next().await {
             match event {
-                Event::IrcEvent(irc_event) => handle_irc_messages(irc_event, &mut app)?,
+                Event::Client(irc_event) => handle_irc_messages(irc_event, &mut app)?,
                 Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
                 Event::Resize => tui.resize()?,
             }
