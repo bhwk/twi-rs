@@ -32,7 +32,7 @@ impl From<Message> for ClientEvent {
     }
 }
 
-pub async fn create_client_stream(oauth_token: String) -> AppResult<(Client, ClientStream)> {
+pub async fn create_client_stream() -> AppResult<(Client, ClientStream)> {
     let config = Config::load("config.toml").unwrap();
 
     let mut client = Client::from_config(config).await?;

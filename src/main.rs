@@ -20,14 +20,13 @@ use crate::app::{App, AppResult};
 async fn main() -> AppResult<()> {
     dotenv().ok();
 
-    let oauth_token = env::var("OAUTH")?;
     let cancel_token = CancellationToken::new();
 
     //clone cancel token to pass to events handler
     let cloned_cancel_token = cancel_token.clone();
 
     // create irc client and stream
-    let (client, client_stream) = twitch::client_stream::create_client_stream(oauth_token).await?;
+    let (client, client_stream) = twitch::client_stream::create_client_stream().await?;
     let mut app = App::new(client, cancel_token);
 
     // init terminal ui
@@ -39,7 +38,7 @@ async fn main() -> AppResult<()> {
 
     tui.init()?;
 
-    app.join_channel(vec!["#blanlita".into(), "#caedrel".into()]);
+    app.join_channel(vec!["#blanlita".into()]);
     while app.running {
         tui.draw(&mut app)?;
 
