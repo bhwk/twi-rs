@@ -12,7 +12,9 @@ mod app;
 mod components;
 mod event;
 mod irc_handler;
+mod join_input;
 mod key_handler;
+mod messagebox;
 mod tui;
 mod twitch;
 mod ui;
@@ -41,7 +43,6 @@ async fn main() -> AppResult<()> {
 
     tui.init()?;
 
-    app.join_channel(vec!["#blanlita".into()]);
     while app.running {
         tui.draw(&mut app)?;
 

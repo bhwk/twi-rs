@@ -19,18 +19,19 @@ pub fn render(app: &mut App, frame: &mut Frame) {
 
     match app.app_mode {
         AppMode::Normal => {
-            components::input::render_input_box(app, input_area, frame);
+            components::input::render_message_box(app, input_area, frame);
             components::messages::render_messages(app, message_box_area, frame);
             components::tabs::render_tabs(app, tabs_area, frame);
         }
 
-        AppMode::Joining => components::popup::render_popup(
-            frame,
+        AppMode::Joining => components::join::render_join_box(
+            app,
             center(
                 frame.area(),
                 Constraint::Percentage(40),
-                Constraint::Percentage(40),
+                Constraint::Length(4),
             ),
+            frame,
         ),
     }
 }

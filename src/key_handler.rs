@@ -1,11 +1,14 @@
-use crate::app::{App, AppMode, AppResult, InputMode};
+use crate::{
+    app::{App, AppMode, AppResult},
+    messagebox::MessageMode,
+};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     match app.app_mode {
         AppMode::Normal => {
-            match app.input_mode {
-                InputMode::Normal => match key_event.code {
+            match app.message_box.mode {
+                MessageMode::Normal => match key_event.code {
                     // Exit application on `Ctrl-c` or `Ctrl-q`
                     KeyCode::Char('q') | KeyCode::Char('c') => {
                         if key_event.modifiers == KeyModifiers::CONTROL {
@@ -26,26 +29,26 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                     }
                     KeyCode::Tab => app.next_channel(),
                     // enter edit mode
-                    KeyCode::Char('i') => app.input_mode = InputMode::Editing,
+                    KeyCode::Char('i') => app.message_box.mode = MessageMode::Editing,
                     _ => {}
                 },
 
-                InputMode::Editing => match key_event.code {
-                    KeyCode::Char(to_insert) => app.enter_char(to_insert),
+                MessageMode::Editing => match key_event.code {
+                    KeyCode::Char(to_insert) => app.message_box.enter_char(to_insert),
                     KeyCode::Enter => {
                         app.send_chat_message();
                     }
                     KeyCode::Backspace => {
-                        app.delete_char();
+                        app.message_box.delete_char();
                     }
                     KeyCode::Esc => {
-                        app.input_mode = InputMode::Normal;
+                        app.message_box.mode = MessageMode::Normal;
                     }
                     KeyCode::Right => {
-                        app.move_cursor_right();
+                        app.message_box.move_cursor_right();
                     }
                     KeyCode::Left => {
-                        app.move_cursor_left();
+                        app.message_box.move_cursor_left();
                     }
                     _ => {}
                 },
@@ -53,10 +56,21 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         }
 
         AppMode::Joining => match key_event.code {
-            KeyCode::Char('q') => {
-                if key_event.modifiers == KeyModifiers::CONTROL {
-                    app.app_mode = AppMode::Normal
-                }
+            KeyCode::Esc => {
+                app.app_mode = AppMode::Normal;
+            }
+            KeyCode::Enter => {
+                app.join_channel();
+            }
+            KeyCode::Char(to_insert) => app.join_box.enter_char(to_insert),
+            KeyCode::Backspace => {
+                app.join_box.delete_char();
+            }
+            KeyCode::Right => {
+                app.join_box.move_cursor_right();
+            }
+            KeyCode::Left => {
+                app.join_box.move_cursor_left();
             }
             _ => {}
         },
