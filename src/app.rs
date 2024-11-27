@@ -3,11 +3,9 @@ use ratatui::widgets::ListState;
 use std::error::Error;
 use tokio_util::sync::CancellationToken;
 
+use crate::{join_input::JoinBox, messagebox::MessageBox};
+
 pub type AppResult<T> = std::result::Result<T, Box<dyn Error>>;
-pub enum InputMode {
-    Normal,
-    Editing,
-}
 
 #[derive(Default, PartialEq, Eq)]
 pub struct MessageInfo {
@@ -39,9 +37,8 @@ impl ChannelInfo {
 
 pub struct App {
     pub running: bool,
-    pub input_mode: InputMode,
-    pub input: String,
-    pub character_index: usize,
+    pub message_box: MessageBox,
+    pub join_box: JoinBox,
     pub channels: Vec<ChannelInfo>,
     pub current_channel: usize,
     pub list_state: ListState,
@@ -54,9 +51,8 @@ impl App {
     pub fn new(client: Client, cancel_token: CancellationToken) -> Self {
         Self {
             running: true,
-            input: String::new(),
-            input_mode: InputMode::Normal,
-            character_index: 0,
+            message_box: MessageBox::default(),
+            join_box: JoinBox::default(),
             channels: Vec::new(),
             current_channel: 0,
             list_state: ListState::default(),
@@ -65,70 +61,23 @@ impl App {
             cancel_token,
         }
     }
-    pub fn move_cursor_left(&mut self) {
-        let cursor_moved_left = self.character_index.saturating_sub(1);
-        self.character_index = self.clamp_cursor(cursor_moved_left);
-    }
-
-    pub fn move_cursor_right(&mut self) {
-        let cursor_moved_right = self.character_index.saturating_add(1);
-        self.character_index = self.clamp_cursor(cursor_moved_right);
-    }
-
-    pub fn enter_char(&mut self, new_char: char) {
-        let index = self.byte_index();
-        self.input.insert(index, new_char);
-        self.move_cursor_right();
-    }
-
-    fn byte_index(&self) -> usize {
-        self.input
-            .char_indices()
-            .map(|(i, _)| i)
-            .nth(self.character_index)
-            .unwrap_or(self.input.len())
-    }
-
-    pub fn delete_char(&mut self) {
-        let is_not_cursor_leftmost = self.character_index != 0;
-        if is_not_cursor_leftmost {
-            let current_index = self.character_index;
-            let from_left_to_current_index = current_index - 1;
-
-            let before_char_to_delete = self.input.chars().take(from_left_to_current_index);
-            let after_char_to_delete = self.input.chars().skip(current_index);
-
-            // Put all characters together except the selected one.
-            // By leaving the selected one out, it is forgotten and therefore deleted.
-            self.input = before_char_to_delete.chain(after_char_to_delete).collect();
-            self.move_cursor_left();
-        }
-    }
-
-    fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
-        new_cursor_pos.clamp(0, self.input.chars().count())
-    }
-
-    fn reset_cursor(&mut self) {
-        self.character_index = 0;
-    }
 
     pub fn send_chat_message(&mut self) {
-        if self.input.is_empty() {
+        if self.message_box.input.is_empty() {
             return;
         }
 
         let current_channel = self.channels.get_mut(self.current_channel);
         if let Some(channel) = current_channel {
             self.client
-                .send_privmsg(channel.name.clone(), self.input.clone())
+                .send_privmsg(channel.name.clone(), self.message_box.input.clone())
                 .unwrap();
             channel.messages.push(MessageInfo {
                 nickname: self.client.current_nickname().into(),
-                content: self.input.clone(),
+                content: self.message_box.input.clone(),
             });
-            self.input.clear();
-            self.reset_cursor();
+            self.message_box.input.clear();
+            self.message_box.reset_cursor();
         }
     }
 
@@ -143,10 +92,17 @@ impl App {
         }
     }
 
-    pub fn join_channel(&mut self, chanlist: Vec<String>) {
-        for channel in chanlist {
-            self.client.send_join(channel).unwrap();
+    pub fn join_channel(&mut self) {
+        if !self.join_box.channel.starts_with("#") {
+            self.join_box.channel = format!("#{}", self.join_box.channel)
         }
+
+        self.client
+            .send_join(self.join_box.channel.clone())
+            .unwrap_or_default();
+
+        self.join_box.channel.clear();
+        self.join_box.reset_cursor();
     }
 
     pub fn on_join_channel(&mut self, channel: String) {
