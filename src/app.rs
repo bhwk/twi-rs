@@ -21,6 +21,13 @@ pub struct ChannelInfo {
     pub messages: Vec<MessageInfo>,
 }
 
+#[derive(Default)]
+pub enum AppMode {
+    #[default]
+    Normal,
+    Joining,
+}
+
 impl ChannelInfo {
     pub fn new(name: String) -> Self {
         Self {
@@ -37,7 +44,8 @@ pub struct App {
     pub character_index: usize,
     pub channels: Vec<ChannelInfo>,
     pub current_channel: usize,
-    pub state: ListState,
+    pub list_state: ListState,
+    pub app_mode: AppMode,
     client: Client,
     cancel_token: CancellationToken,
 }
@@ -51,7 +59,8 @@ impl App {
             character_index: 0,
             channels: Vec::new(),
             current_channel: 0,
-            state: ListState::default(),
+            list_state: ListState::default(),
+            app_mode: AppMode::default(),
             client,
             cancel_token,
         }

@@ -15,7 +15,7 @@ pub fn render_input_box(app: &App, area: Rect, frame: &mut Frame) {
     let [help_area, input_box] = layout.areas(area);
     let (msg, style) = match app.input_mode {
         InputMode::Normal => (
-            vec!["Press (q) to exit, (e) to edit".into()],
+            vec!["Press <ctrl + q> to exit, <i> to edit".into()],
             Style::default(),
         ),
         InputMode::Editing => (

@@ -38,7 +38,7 @@ pub fn render_messages(app: &mut App, area: Rect, frame: &mut Frame) {
             .direction(ListDirection::BottomToTop)
             .block(Block::bordered().title("messages"));
 
-        frame.render_stateful_widget(messages, area, &mut app.state);
+        frame.render_stateful_widget(messages, area, &mut app.list_state);
     } else {
         let messages: Vec<ListItem> = vec![];
         let messages = List::new(messages).block(Block::bordered().title("messages"));
