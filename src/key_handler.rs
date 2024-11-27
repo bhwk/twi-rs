@@ -57,6 +57,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
 
         AppMode::Joining => match key_event.code {
             KeyCode::Esc => {
+                app.join_box.clear_box();
                 app.app_mode = AppMode::Normal;
             }
             KeyCode::Enter => {

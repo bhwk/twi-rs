@@ -64,6 +64,10 @@ impl MessageBox {
         new_cursor_pos.clamp(0, self.input.chars().count())
     }
 
+    pub fn clear_box(&mut self) {
+        self.input.clear();
+        self.reset_cursor();
+    }
     pub fn reset_cursor(&mut self) {
         self.character_index = 0;
     }

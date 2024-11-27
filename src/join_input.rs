@@ -50,6 +50,11 @@ impl JoinBox {
         new_cursor_pos.clamp(0, self.channel.chars().count())
     }
 
+    pub fn clear_box(&mut self) {
+        self.channel.clear();
+        self.reset_cursor();
+    }
+
     pub fn reset_cursor(&mut self) {
         self.character_index = 0;
     }

@@ -76,8 +76,7 @@ impl App {
                 nickname: self.client.current_nickname().into(),
                 content: self.message_box.input.clone(),
             });
-            self.message_box.input.clear();
-            self.message_box.reset_cursor();
+            self.message_box.clear_box()
         }
     }
 
@@ -101,8 +100,7 @@ impl App {
             .send_join(self.join_box.channel.clone())
             .unwrap_or_default();
 
-        self.join_box.channel.clear();
-        self.join_box.reset_cursor();
+        self.join_box.clear_box()
     }
 
     pub fn on_join_channel(&mut self, channel: String) {
